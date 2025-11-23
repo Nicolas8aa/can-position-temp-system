@@ -1,0 +1,287 @@
+/* App.css - Responsive Temperature Monitoring HMI Styles */
+
+/* Root Variables */
+:root {
+  --primary-color: #ff6b6b;
+  --secondary-color: #4ecdc4;
+  --background-color: #f8f9fa;
+  --card-background: #ffffff;
+  --text-color: #333333;
+  --text-secondary: #666666;
+  --border-color: #e0e0e0;
+  --error-color: #e74c3c;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Global Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+/* Header Styles */
+.app-header {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.app-header h1 {
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.app-subtitle {
+  font-size: clamp(0.875rem, 2.5vw, 1.125rem);
+  opacity: 0.95;
+  font-weight: 300;
+}
+
+/* Main Content */
+.app-main {
+  flex: 1;
+  padding: 1.5rem;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Dashboard Layout */
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Temperature Display Card */
+.temperature-display {
+  background: var(--card-background);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-align: center;
+}
+
+.temperature-display:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.temp-label {
+  font-size: clamp(1rem, 3vw, 1.25rem);
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.temp-value {
+  font-size: clamp(3rem, 10vw, 5rem);
+  font-weight: 700;
+  color: var(--primary-color);
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.temp-unit {
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+/* Loading State */
+.temperature-display.loading .temp-label {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Error State */
+.temperature-display.error {
+  border: 2px solid var(--error-color);
+}
+
+.temperature-display.error .temp-label {
+  color: var(--error-color);
+}
+
+/* Chart Container */
+.chart-container {
+  background: var(--card-background);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+}
+
+.chart-container h2 {
+  font-size: clamp(1.25rem, 4vw, 1.75rem);
+  color: var(--text-color);
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.temperature-chart {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* Error Message */
+.error-message {
+  background-color: #fee;
+  border: 1px solid var(--error-color);
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--error-color);
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
+}
+
+.error-message strong {
+  font-weight: 700;
+}
+
+/* No Data Message */
+.no-data-message {
+  background: var(--card-background);
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: clamp(1rem, 3vw, 1.25rem);
+  box-shadow: var(--shadow);
+}
+
+/* Footer */
+.app-footer {
+  background-color: var(--card-background);
+  border-top: 1px solid var(--border-color);
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: clamp(0.75rem, 2vw, 0.875rem);
+  margin-top: auto;
+}
+
+/* Responsive Design */
+
+/* Tablet (768px and above) */
+@media (min-width: 768px) {
+  .app-main {
+    padding: 2rem;
+  }
+
+  .dashboard {
+    gap: 2.5rem;
+  }
+
+  .chart-container {
+    padding: 2rem;
+  }
+}
+
+/* Desktop (1024px and above) */
+@media (min-width: 1024px) {
+  .app-main {
+    padding: 3rem;
+  }
+
+  .dashboard {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    grid-template-rows: auto auto;
+    gap: 2rem;
+  }
+
+  .temperature-display {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .chart-container {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .error-message,
+  .no-data-message {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Large Desktop (1440px and above) */
+@media (min-width: 1440px) {
+  .app-header {
+    padding: 2.5rem 2rem;
+  }
+
+  .app-main {
+    padding: 4rem 2rem;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .app-header,
+  .app-footer {
+    display: none;
+  }
+
+  .app-main {
+    padding: 0;
+  }
+
+  .temperature-display,
+  .chart-container {
+    box-shadow: none;
+    border: 1px solid var(--border-color);
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-color: #1a1a1a;
+    --card-background: #2d2d2d;
+    --text-color: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --border-color: #404040;
+  }
+
+  .app-header {
+    background: linear-gradient(135deg, #d63031, #0984e3);
+  }
+
+  .error-message {
+    background-color: rgba(231, 76, 60, 0.1);
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+

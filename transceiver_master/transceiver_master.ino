@@ -1,15 +1,17 @@
 #include <SPI.h>
 #include <mcp2515.h>
 #include <WiFi.h>
-#include <HTTPClient.h>
+#include <WebServer.h>
 
 struct can_frame canMsg;
 struct MCP2515 mcp2515(5); // CS pin is GPIO 5
 
 // WiFi Configuration
-#define WIFI_SSID "YOUR_WIFI_SSID"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
-#define WEB_SERVER_URL "http://192.168.1.100:3000/api/temperature" // Update with your server
+#define WIFI_SSID "FLIA_CG"
+#define WIFI_PASSWORD "1082124138"
+
+// Web Server
+WebServer server(80); // HTTP server on port 80
 
 // CAN IDs
 #define MAX_RETRIES 3
@@ -26,8 +28,6 @@ struct MCP2515 mcp2515(5); // CS pin is GPIO 5
 // Global variables
 int lastAdcValue = -1; // Initialize to invalid value to ensure first reading is sent
 float currentTemperature = 0.0; // Current temperature from slave
-unsigned long lastWebUpdate = 0;
-#define WEB_UPDATE_INTERVAL 5000 // Send to web server every 5 seconds
 
 void setup() {
   Serial.begin(115200);
@@ -42,24 +42,25 @@ void setup() {
   mcp2515.setBitrate(CAN_500KBPS, MCP_8MHZ);
   mcp2515.setNormalMode();
   
-  // Initialize WiFi
+  // Initialize WiFi and Web Server
   initWiFi();
+  initWebServer();
   
   Serial.println("Transceiver (Master) initialized");
   Serial.println("- Sending voltage via CAN");
   Serial.println("- Receiving temperature via CAN");
-  Serial.println("- Forwarding temperature to web server");
+  Serial.println("- Serving temperature via HTTP");
 }
 
 void loop() {
+  // Handle HTTP requests
+  server.handleClient();
+  
   // TRANSMITTER: Read and send potentiometer voltage
   readAndSendVoltage();
   
   // RECEIVER: Poll for temperature data from slave
   receiveTemperatureData();
-  
-  // WEB SERVER: Send temperature data periodically
-  sendTemperatureToWebServer();
   
   delay(10); // Small delay for stability
 }
@@ -110,47 +111,43 @@ void receiveTemperatureData() {
 }
 
 /**
- * Send temperature data to web server periodically
+ * Initialize web server endpoints
  */
-void sendTemperatureToWebServer() {
-  unsigned long currentMillis = millis();
+void initWebServer() {
+  // Enable CORS for browser access
+  server.enableCORS(true);
   
-  if (currentMillis - lastWebUpdate >= WEB_UPDATE_INTERVAL) {
-    lastWebUpdate = currentMillis;
-    
-    // Only send if WiFi is connected
-    if (WiFi.status() == WL_CONNECTED) {
-      HTTPClient http;
-      
-      http.begin(WEB_SERVER_URL);
-      http.addHeader("Content-Type", "application/json");
-      
-      // Create JSON payload
-      String jsonPayload = "{\"temperature\":";
-      jsonPayload += String(currentTemperature, 2);
-      jsonPayload += ",\"timestamp\":";
-      jsonPayload += String(millis());
-      jsonPayload += "}";
-      
-      int httpResponseCode = http.POST(jsonPayload);
-      
-      if (httpResponseCode > 0) {
-        Serial.print("Web Server Response: ");
-        Serial.println(httpResponseCode);
-        String response = http.getString();
-        Serial.println(response);
-      } else {
-        Serial.print("Error sending to web server: ");
-        Serial.println(httpResponseCode);
-      }
-      
-      http.end();
-    } else {
-      Serial.println("WiFi not connected");
-      // Try to reconnect
-      WiFi.reconnect();
-    }
-  }
+  // API endpoint for temperature data
+  server.on("/api/temperature", HTTP_GET, handleTemperatureRequest);
+  
+  // Root endpoint for testing
+  server.on("/", HTTP_GET, []() {
+    server.send(200, "text/plain", "ESP32 Temperature Server - Use /api/temperature");
+  });
+  
+  server.begin();
+  Serial.println("HTTP server started");
+  Serial.print("Access temperature at: http://");
+  Serial.print(WiFi.localIP());
+  Serial.println("/api/temperature");
+}
+
+/**
+ * Handle temperature API requests
+ */
+void handleTemperatureRequest() {
+  // Create JSON response
+  String json = "{\"temperature\":";
+  json += String(currentTemperature, 2);
+  json += ",\"timestamp\":";
+  json += String(millis());
+  json += "}";
+  
+  // Send response with CORS headers
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.sendHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+  server.send(200, "application/json", json);
 }
 
 /**
