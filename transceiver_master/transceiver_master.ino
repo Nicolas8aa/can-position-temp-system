@@ -20,10 +20,11 @@ WebServer server(80);  // HTTP server on port 80
 #define CAN_TEMP_ID 0x038     // CAN ID for temperature data
 
 // ADC Configuration
-#define POTENTIOMETER_PIN 13   // GPIO pin for potentiometer
+#define POTENTIOMETER_PIN 34   // GPIO pin for potentiometer (ADC1_CH6, safe from SPI)
 #define ADC_RESOLUTION 4095    // 12-bit ADC (0-4095)
 #define VOLTAGE_REFERENCE 3.3  // ESP32 reference voltage
-#define CHANGE_THRESHOLD 10    // Minimum ADC change to trigger transmission
+#define CHANGE_THRESHOLD 20    // Minimum ADC change to trigger transmission
+#define ADC_SAMPLES 40 
 
 // Global variables
 int lastAdcValue = -1;           // Initialize to invalid value to ensure first reading is sent
@@ -31,7 +32,6 @@ float currentTemperature = 0.0;  // Current temperature from slave
 
 void setup() {
   Serial.begin(115200);
-  delay(1000);  // Allow time for serial monitor to initialize
 
   // Configure ADC pin
   pinMode(POTENTIOMETER_PIN, INPUT);
@@ -62,18 +62,30 @@ void loop() {
   // TRANSMITTER: Read and send potentiometer voltage
   readAndSendVoltage();
 
-  // // RECEIVER: Poll for temperature data from slave
+  // RECEIVER: Poll for temperature data from slave
   receiveTemperatureData();
 
-  delay(10);  // Small delay for stability
+  delay(10);  // Reduced delay for more responsive ADC reading
+}
+
+/**
+ * Read ADC with averaging to reduce noise
+ */
+int readAdcAveraged() {
+  long sum = 0;
+  for (int i = 0; i < ADC_SAMPLES; i++) {
+    sum += analogRead(POTENTIOMETER_PIN);
+    delayMicroseconds(100);  // Small delay between samples
+  }
+  return sum / ADC_SAMPLES;
 }
 
 /**
  * Read potentiometer and send voltage via CAN
  */
 void readAndSendVoltage() {
-  int currentAdcValue = analogRead(POTENTIOMETER_PIN);
-
+  int currentAdcValue = readAdcAveraged();
+  
   // Check if value has changed significantly
   if (abs(currentAdcValue - lastAdcValue) >= CHANGE_THRESHOLD) {
     // Calculate voltage in millivolts for transmission
@@ -164,27 +176,18 @@ void initWiFi() {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   Serial.print("Connecting");
-  int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 40) {  // 20 seconds timeout
+  while (WiFi.status() != WL_CONNECTED ) { 
     delay(500);
     Serial.print(".");
-    attempts++;
   }
   Serial.println();
 
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("WiFi connected successfully!");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-    Serial.print("Signal strength (RSSI): ");
-    Serial.print(WiFi.RSSI());
-    Serial.println(" dBm");
-  } else {
-    Serial.println("WiFi connection failed!");
-    Serial.print("WiFi status code: ");
-    Serial.println(WiFi.status());
-    Serial.println("Continuing without WiFi...");
-  }
+  Serial.println("WiFi connected successfully!");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+  Serial.print("Signal strength (RSSI): ");
+  Serial.print(WiFi.RSSI());
+  Serial.println(" dBm");
 }
 
 /**
